@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 
@@ -22,7 +23,8 @@ namespace RexExExp
     class SubPattern
     {
         public char mask;
-        public bool variable;
+        public int min = 1;
+        public int max = 1;
 
         public SubPattern(char mask)
         {
@@ -46,7 +48,28 @@ namespace RexExExp
                     {
                         throw new PatternException(pattern, p);
                     }
-                    subPattern.variable = true;
+                    subPattern.min = 0;
+                    subPattern.max = int.MaxValue;
+                    subPattern = null;
+                }
+                else if (pattern[p] == '+')
+                {
+                    if (subPattern == null)
+                    {
+                        throw new PatternException(pattern, p);
+                    }
+                    subPattern.min = 1;
+                    subPattern.max = int.MaxValue;
+                    subPattern = null;
+                }
+                else if (pattern[p] == '?')
+                {
+                    if (subPattern == null)
+                    {
+                        throw new PatternException(pattern, p);
+                    }
+                    subPattern.min = 0;
+                    subPattern.max = 1;
                     subPattern = null;
                 }
                 else
@@ -65,31 +88,33 @@ namespace RexExExp
             Pattern pat = new Pattern(pattern);
 
             var i = 0;
-
             foreach (SubPattern sub in pat.subPatterns)
             {
+                var iteration = 0;
+
                 // A pattern can match 0 or more characters, so loop while we match.
                 while (true) {
 
                     // Check if there is something to match, and if so, if it does match.
                     bool match = (i < input.Length && (input[i] == sub.mask || sub.mask == '.'));
 
-                    if (sub.variable)
+                    if (match)
                     {
-                        // If it's a variable subpattern, having no match is fine. Just advance to the next.
-                        if (!match) 
+                        // There is a match for this character, go to the next character.
+                        i++;
+                        // If we reached the max, also go to the next pattern.
+                        if (++iteration >= sub.max)
                             break;
-                        // If there is a match, advance to the next input character.
-                        i++; // Thought: Increment by mask length to support string matching.
-                    } 
+                    }
                     else
                     {
-                        // If it's a fixed pattern, having no match means error.
-                        if (!match) 
-                            return false;
-                        // If there is a match, this subpattern is done anyway. Advance to the next input character _and_ the next pattern.
-                        i++;
-                        break;
+                        // No match for this character. 
+                        // If we reached the minimum for this subpattern, check the next.
+                        if (iteration >= sub.min) 
+                            break;
+                        
+                        // If we didn't reach the minimum yet, there the pattern doesn't match.
+                        return false;
                     }
                 }
             }
