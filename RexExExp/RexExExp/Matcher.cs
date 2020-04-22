@@ -64,46 +64,38 @@ namespace RexExExp
         {
             Pattern pat = new Pattern(pattern);
 
-            var p = 0;
-            
-            foreach (char c in input)
+            var i = 0;
+
+            foreach (SubPattern sub in pat.subPatterns)
             {
-                // 0 or more patterns can match a character, so loop through the patterns while they match.
-                while (true)
-                {
-                    // If we run out of sub-patterns, there is no full match. There is unmatched input at the end.
-                    if (p >= pat.subPatterns.Count) 
-                        return false;
+                // A pattern can match 0 or more characters, so loop while we match.
+                while (true) {
 
-                    var sub = pat.subPatterns[p];
+                    // Check if there is something to match, and if so, if it does match.
+                    bool match = (i < input.Length && (input[i] == sub.mask || sub.mask == '.'));
 
-                    if (sub.mask != c && sub.mask != '.')
+                    if (sub.variable)
                     {
-                        // If the input character doesn't match the pattern, _and_ the pattern is not a variable 
-                        // pattern, there is no match.
-                        if (!sub.variable) 
-                            return false;
-                        // If it is a variable subpattern, it's fine. This subpattern has ended, on to the next.
-                        // Don't break the loop here. We still need to match the input character c!
-                        p++;
-                    }
+                        // If it's a variable subpattern, having no match is fine. Just advance to the next.
+                        if (!match) 
+                            break;
+                        // If there is a match, advance to the next input character.
+                        i++; // Thought: Increment by mask length to support string matching.
+                    } 
                     else
                     {
-                        // There is a match! If this is not a variable subpattern, advance to the next subpatternn.
-                        if (!sub.variable)
-                            p++;
-                        // End the inner loop here. The input character c was matched.
+                        // If it's a fixed pattern, having no match means error.
+                        if (!match) 
+                            return false;
+                        // If there is a match, this subpattern is done anyway. Advance to the next input character _and_ the next pattern.
+                        i++;
                         break;
                     }
                 }
             }
-
-            // Out of input string. Skip any remaining subpatterns if they are of variable length.
-            if (p < pat.subPatterns.Count && pat.subPatterns[p].variable)
-                p++;
-              
-            // No subpatterns left? Then we had a full match.
-            return p == pat.subPatterns.Count;
+            
+            // Currently we need to match the entire string, so result is only true if there is no more input string left.
+            return i == input.Length;
         }
     }
 }
