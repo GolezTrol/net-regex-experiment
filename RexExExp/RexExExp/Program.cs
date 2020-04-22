@@ -21,6 +21,7 @@ namespace RexExExp
                 Verify("aa", "a*", true, "'*' means zero or more of the preceding element, 'a'.Therefore, by repeating 'a' once, it becomes 'aa'.") +
                 Verify("ab", ".*", true, "'.' means 'zero or more () of any character (.)'.") +
                 Verify("aab", "c*a*b", true, "c can be repeated 0 times, a can be repeated 2 times. Therefore, it matches 'aab'.") +
+                Verify("aa", "a*a", true, "a* will greedily capture aa. Backtracking is required.") +
                 Verify("mississippi", "mis*is*p*.", false, "Everything matches, except the 'i' beween 'ss' and 'pp'.") +
                 0;
 
