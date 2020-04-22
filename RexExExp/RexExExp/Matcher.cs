@@ -74,23 +74,14 @@ namespace RexExExp
                     // Check if there is something to match, and if so, if it does match.
                     bool match = (i < input.Length && (input[i] == sub.mask || sub.mask == '.'));
 
-                    if (sub.variable)
-                    {
-                        // If it's a variable subpattern, having no match is fine. Just advance to the next.
-                        if (!match) 
-                            break;
-                        // If there is a match, advance to the next input character.
-                        i++; // Thought: Increment by mask length to support string matching.
-                    } 
-                    else
-                    {
-                        // If it's a fixed pattern, having no match means error.
-                        if (!match) 
-                            return false;
-                        // If there is a match, this subpattern is done anyway. Advance to the next input character _and_ the next pattern.
-                        i++;
-                        break;
-                    }
+                    // If there was a mismatch on a fixed length mask, there is no match at all.
+                    if (!match && !sub.variable) return false;
+                    
+                    // If there was a match of any kind, advance to the next input character.
+                    if (match) i++;
+
+                    // If there was either a fixed length match, or a variable length mismatch, proceed to the next pattern. 
+                    if (match ^ sub.variable) break;
                 }
             }
             
