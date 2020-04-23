@@ -39,45 +39,47 @@ namespace RexExExp
         public Pattern(string pattern)
         {
             subPatterns = new List<SubPattern>();
-            SubPattern subPattern = null; ;
-            for (int p = 0; p < pattern.Length; ++p)
+
+            var p = 0;
+
+            while (p < pattern.Length)
+                subPatterns.Add(ScanPattern(pattern, ref p));
+        }
+
+        private SubPattern ScanPattern(string pattern, ref int p)
+        {
+            char c = pattern[p++];
+
+            if (!(char.IsLetterOrDigit(c) || c == '.'))
+                throw new PatternException(pattern, --p);
+
+            var subPattern = new SubPattern(c);
+
+            if (p < pattern.Length)
             {
-                if (pattern[p] == '*')
+                c = pattern[p++];
+                if (c == '*')
                 {
-                    if (subPattern == null)
-                    {
-                        throw new PatternException(pattern, p);
-                    }
                     subPattern.min = 0;
                     subPattern.max = int.MaxValue;
-                    subPattern = null;
-                }
-                else if (pattern[p] == '+')
+                } 
+                else if (c == '+')
                 {
-                    if (subPattern == null)
-                    {
-                        throw new PatternException(pattern, p);
-                    }
                     subPattern.min = 1;
                     subPattern.max = int.MaxValue;
-                    subPattern = null;
                 }
-                else if (pattern[p] == '?')
+                else if (c == '?')
                 {
-                    if (subPattern == null)
-                    {
-                        throw new PatternException(pattern, p);
-                    }
                     subPattern.min = 0;
                     subPattern.max = 1;
-                    subPattern = null;
                 }
                 else
                 {
-                    subPattern = new SubPattern(pattern[p]);
-                    subPatterns.Add(subPattern);
+                    p--;
                 }
             }
+
+            return subPattern;
         }
     }
 
