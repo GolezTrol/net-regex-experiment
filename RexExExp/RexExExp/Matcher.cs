@@ -46,38 +46,34 @@ namespace RexExExp
                 subPatterns.Add(ScanPattern(pattern, ref p));
         }
 
-        private SubPattern ScanPattern(string pattern, ref int p)
+        private char ScanCharacterMatcher(string pattern, ref int p)
         {
             char c = pattern[p++];
 
             if (!(char.IsLetterOrDigit(c) || c == '.'))
                 throw new PatternException(pattern, --p);
 
-            var subPattern = new SubPattern(c);
+            return c;
+        }
 
+        private void ScanQuantifier(string pattern, ref int p, ref int min, ref int max)
+        {
             if (p < pattern.Length)
             {
-                c = pattern[p++];
-                if (c == '*')
-                {
-                    subPattern.min = 0;
-                    subPattern.max = int.MaxValue;
-                } 
-                else if (c == '+')
-                {
-                    subPattern.min = 1;
-                    subPattern.max = int.MaxValue;
-                }
-                else if (c == '?')
-                {
-                    subPattern.min = 0;
-                    subPattern.max = 1;
-                }
-                else
-                {
-                    p--;
-                }
+                char c = pattern[p++];
+                (min, max) = (0, int.MaxValue);
+                if (c == '*') (min, max) = (0, int.MaxValue);
+                else if (c == '+') (min, max) = (1, int.MaxValue);
+                else if (c == '?') (min, max) = (0, 1);
+                else p--;
             }
+        }
+
+        private SubPattern ScanPattern(string pattern, ref int p)
+        {
+            var subPattern = new SubPattern(ScanCharacterMatcher(pattern, ref p));
+
+            ScanQuantifier(pattern, ref p, ref subPattern.min, ref subPattern.max);
 
             return subPattern;
         }
