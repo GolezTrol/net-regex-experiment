@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 
 namespace RexExExp
@@ -56,6 +57,29 @@ namespace RexExExp
             return c;
         }
 
+        private int ScanInt(string pattern, ref int p)
+        {
+            int i = 0;
+            char c;
+            while (p < pattern.Length)
+            {
+                c = pattern[p];
+                if (char.IsDigit(c))
+                {
+                    p++;
+                    i = i * 10 + (c - '0');
+                } else
+                {
+                    break;
+                }
+            }
+
+            if (i <= 0)
+                throw new PatternException(pattern, p);
+
+            return i;
+        }
+
         private void ScanQuantifier(string pattern, ref int p, ref int min, ref int max)
         {
             if (p < pattern.Length)
@@ -65,6 +89,13 @@ namespace RexExExp
                 if (c == '*') (min, max) = (0, int.MaxValue);
                 else if (c == '+') (min, max) = (1, int.MaxValue);
                 else if (c == '?') (min, max) = (0, 1);
+                else if (c == '{')
+                {
+                    min = ScanInt(pattern, ref p);
+                    max = min;
+                    if (pattern[p++] != '}')
+                        throw new PatternException(pattern, --p);
+                }
                 else p--;
             }
         }

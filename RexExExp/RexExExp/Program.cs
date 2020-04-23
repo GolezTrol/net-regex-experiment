@@ -26,6 +26,9 @@ namespace RexExExp
                 Verify("acc", "a?b?c?", false, "? as 0 or 1 quantifier can't match 2") +
                 Verify("abbbbcd", "ab+cd", true, "+ for 1 or more quantifier") +
                 Verify("acd", "ab+cd", false, "+ can't match 0") +
+                Verify("abbbbcd", "ab{3}cd", false, "{x} for 'exactly x times' quantifier") +
+                Verify("abbbbcd", "ab{4}cd", true, "{x} for 'exactly x times' quantifier") +
+                Verify("abbbbcd", "ab{5}cd", false, "{x} for 'exactly x times' quantifier") +
                 0;
 
             Console.WriteLine($"\n---------------\n{errors} errors");
