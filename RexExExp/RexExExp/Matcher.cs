@@ -57,27 +57,28 @@ namespace RexExExp
             return c;
         }
 
-        private int ScanInt(string pattern, ref int p)
+        private bool ScanInt(string pattern, ref int p, ref int result)
         {
-            int i = 0;
+            // Scan for a sequence of digits. Return false if 0 digits were found.
+            bool found = false;
             char c;
+            result = 0;
+
             while (p < pattern.Length)
             {
                 c = pattern[p];
                 if (char.IsDigit(c))
                 {
                     p++;
-                    i = i * 10 + (c - '0');
+                    result = result * 10 + (c - '0');
+                    found = true;
                 } else
                 {
                     break;
                 }
             }
 
-            if (i <= 0)
-                throw new PatternException(pattern, p);
-
-            return i;
+            return found;
         }
 
         private void ScanQuantifier(string pattern, ref int p, ref int min, ref int max)
@@ -91,8 +92,35 @@ namespace RexExExp
                 else if (c == '?') (min, max) = (0, 1);
                 else if (c == '{')
                 {
-                    min = ScanInt(pattern, ref p);
-                    max = min;
+                    // At least one non-negative number expected
+                    if (!ScanInt(pattern, ref p, ref min) || min < 0)
+                        throw new PatternException(pattern, p); // Expected a non-negative int.
+                    
+                    if (pattern[p] == ',')
+                    {
+                        // If followed by a comma, it's a range. The end of the range is optional.
+                        p++;
+                        if (!ScanInt(pattern, ref p, ref max))
+                        {
+                            max = int.MaxValue;
+                        } else
+                        {
+                            if (max < min)
+                            {
+                                // To do. Start throwing more specific exceptions
+                                // In this case, tell user that max cannot be < min
+                                throw new PatternException(pattern, p);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // No comma, so a fixed length. Max = min, but it should be non-zero positive. 
+                        max = min;
+                        if (min <= 0)
+                            throw new PatternException(pattern, p);
+                    }
+
                     if (pattern[p++] != '}')
                         throw new PatternException(pattern, --p);
                 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Security;
 using System.Text.RegularExpressions;
 
@@ -29,6 +29,10 @@ namespace RexExExp
                 Verify("abbbbcd", "ab{3}cd", false, "{x} for 'exactly x times' quantifier") +
                 Verify("abbbbcd", "ab{4}cd", true, "{x} for 'exactly x times' quantifier") +
                 Verify("abbbbcd", "ab{5}cd", false, "{x} for 'exactly x times' quantifier") +
+                Verify("abbbbcd", "ab{1,3}cd", false, "{x,y} for 'x to y times' quantifier") +
+                Verify("abbbbcd", "ab{3,7}cd", true, "{x,y} for 'x to y times' quantifier") +
+                Verify("abbbbcd", "ab{3,}cd", true, "{x,} for 'at least x times' quantifier") +
+                Verify("abbbbcd", "ab{5,}cd", false, "{x,} for 'at least x times' quantifier") +
                 0;
 
             Console.WriteLine($"\n---------------\n{errors} errors");
