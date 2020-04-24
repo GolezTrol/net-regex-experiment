@@ -14,6 +14,21 @@ namespace RexExExp
             return ok ? 0 : 1; // Return 1 in case of error
         }
 
+        static int VerifyException(string input, string pattern, Type expected, string reason)
+        {
+            bool ok = false;
+            try
+            {
+                Matcher.IsMatch(input, pattern);
+            }
+            catch(Exception ex) {
+                ok = ex.GetType() == expected;
+                Console.WriteLine($"Caught: {ex.Message}");
+                Console.WriteLine($"{input}\n{pattern}\n{reason}\n" + (ok ? "ok" : "FAILED"));
+            }
+            return ok ? 0 : 1; // Return 1 in case of error
+        }
+
         static int Main(string[] args)
         {
             var errors =
@@ -33,6 +48,8 @@ namespace RexExExp
                 Verify("abbbbcd", "ab{3,7}cd", true, "{x,y} for 'x to y times' quantifier") +
                 Verify("abbbbcd", "ab{3,}cd", true, "{x,} for 'at least x times' quantifier") +
                 Verify("abbbbcd", "ab{5,}cd", false, "{x,} for 'at least x times' quantifier") +
+                VerifyException("abbbbcd", "ab{5,cd", typeof(ExpectedException), "quantifier should end with }") +
+                VerifyException("a", "{5}", typeof(ExpectedException), "quantifier should be preceeded by a character") +
                 0;
 
             Console.WriteLine($"\n---------------\n{errors} errors");

@@ -6,19 +6,6 @@ using System.Text.RegularExpressions;
 
 namespace RexExExp
 {
-    // Exception to throw in case of unexpected characters in a pattern, especially when * is at the start of the string, or the ** after each other.
-    class PatternException : System.ArgumentException
-    {
-        public PatternException(string pattern, int position) :
-            base($"Invalid pattern, {pattern}, {pattern[position]} was unexpected at position {position}.")
-        {
-            Pattern = pattern;
-            Position = position;
-        }
-
-        public string Pattern { get; private set; }
-        public int Position { get; private set; }
-    }
 
     // A sub-pattern consists of a character to match (or the '.' wildcard), and a flag indicating if it's fixed or variable.
     class SubPattern
@@ -52,7 +39,7 @@ namespace RexExExp
             char c = pattern[p++];
 
             if (!(char.IsLetterOrDigit(c) || c == '.'))
-                throw new PatternException(pattern, --p);
+                throw new ExpectedException("alphanumeric character or wildcard", pattern, --p);
 
             return c;
         }
@@ -93,11 +80,14 @@ namespace RexExExp
                 else if (c == '{')
                 {
                     // At least one non-negative number expected
-                    if (!ScanInt(pattern, ref p, ref min) || min < 0)
-                        throw new PatternException(pattern, p); // Expected a non-negative int.
-                    
+                    if (!ScanInt(pattern, ref p, ref min))
+                        throw new ExpectedException("number", pattern, p); // Expected a non-negative int.
+
                     if (pattern[p] == ',')
                     {
+                        if (min < 0)
+                            throw new ValueException("Lower bound of quantifier cannot be lower than 0", pattern, p);
+
                         // If followed by a comma, it's a range. The end of the range is optional.
                         p++;
                         if (!ScanInt(pattern, ref p, ref max))
@@ -109,7 +99,7 @@ namespace RexExExp
                             {
                                 // To do. Start throwing more specific exceptions
                                 // In this case, tell user that max cannot be < min
-                                throw new PatternException(pattern, p);
+                                throw new ValueException("Upper bound of range cannot be lower than lower bound.", pattern, p);
                             }
                         }
                     }
@@ -118,11 +108,11 @@ namespace RexExExp
                         // No comma, so a fixed length. Max = min, but it should be non-zero positive. 
                         max = min;
                         if (min <= 0)
-                            throw new PatternException(pattern, p);
+                            throw new ValueException("Quantifier must be more than 0.", pattern, p);
                     }
 
                     if (pattern[p++] != '}')
-                        throw new PatternException(pattern, --p);
+                        throw new ExpectedException("closing }", pattern, --p);
                 }
                 else p--;
             }
