@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Security.Cryptography.X509Certificates;
@@ -8,13 +8,13 @@ namespace RexExExp
 {
 
     // A sub-pattern consists of a character to match (or the '.' wildcard), and a flag indicating if it's fixed or variable.
-    class SubPattern
+    public class SubPattern
     {
-        public char mask;
+        public string mask;
         public int min = 1;
         public int max = 1;
 
-        public SubPattern(char mask)
+        public SubPattern(string mask)
         {
             this.mask = mask;
         }
@@ -26,14 +26,21 @@ namespace RexExExp
             // A pattern can match 0 or more characters, so loop while we match.
             while (true)
             {
-
                 // Check if there is something to match, and if so, if it does match.
-                bool match = (position < input.Length && (input[position] == mask || mask == '.'));
+
+                bool match = position + mask.Length <= input.Length;
+
+                if (match && mask != ".")
+                {
+                    string sub = input.Substring(position, mask.Length);
+
+                    match = mask == sub;
+                }
 
                 if (match)
                 {
                     // There is a match for this character, go to the next character.
-                    position++;
+                    position += mask.Length;
                     // If we reached the max, also go to the next pattern.
                     if (++iteration >= max)
                         break;
@@ -53,7 +60,7 @@ namespace RexExExp
         }
     }
 
-    class Pattern
+    public class Pattern
     {
         public List<SubPattern> subPatterns;
 
@@ -65,16 +72,6 @@ namespace RexExExp
 
             while (p < pattern.Length)
                 subPatterns.Add(ScanPattern(pattern, ref p));
-        }
-
-        private char ScanCharacterMatcher(string pattern, ref int p)
-        {
-            char c = pattern[p++];
-
-            if (!(char.IsLetterOrDigit(c) || c == '.'))
-                throw new ExpectedException("alphanumeric character or wildcard", pattern, --p);
-
-            return c;
         }
 
         private bool ScanInt(string pattern, ref int p, ref int result)
@@ -101,63 +98,111 @@ namespace RexExExp
             return found;
         }
 
-        private void ScanQuantifier(string pattern, ref int p, ref int min, ref int max)
+        private bool ScanQuantifier(string pattern, ref int p, out int min, out int max)
         {
-            if (p < pattern.Length)
+            (min, max) = (1, 1);
+            if (p >= pattern.Length) return false;
+
+            char c = pattern[p++];
+            (min, max) = (0, int.MaxValue);
+            if (c == '*') (min, max) = (0, int.MaxValue);
+            else if (c == '+') (min, max) = (1, int.MaxValue);
+            else if (c == '?') (min, max) = (0, 1);
+            else if (c == '{')
             {
-                char c = pattern[p++];
-                (min, max) = (0, int.MaxValue);
-                if (c == '*') (min, max) = (0, int.MaxValue);
-                else if (c == '+') (min, max) = (1, int.MaxValue);
-                else if (c == '?') (min, max) = (0, 1);
-                else if (c == '{')
+                // At least one non-negative number expected
+                if (!ScanInt(pattern, ref p, ref min))
+                    throw new ExpectedException("number", pattern, p); // Expected a non-negative int.
+
+                if (pattern[p] == ',')
                 {
-                    // At least one non-negative number expected
-                    if (!ScanInt(pattern, ref p, ref min))
-                        throw new ExpectedException("number", pattern, p); // Expected a non-negative int.
+                    if (min < 0)
+                        throw new ValueException("Lower bound of quantifier cannot be lower than 0", pattern, p);
 
-                    if (pattern[p] == ',')
+                    // If followed by a comma, it's a range. The end of the range is optional.
+                    p++;
+                    if (!ScanInt(pattern, ref p, ref max))
                     {
-                        if (min < 0)
-                            throw new ValueException("Lower bound of quantifier cannot be lower than 0", pattern, p);
-
-                        // If followed by a comma, it's a range. The end of the range is optional.
-                        p++;
-                        if (!ScanInt(pattern, ref p, ref max))
-                        {
-                            max = int.MaxValue;
-                        } else
-                        {
-                            if (max < min)
-                            {
-                                // To do. Start throwing more specific exceptions
-                                // In this case, tell user that max cannot be < min
-                                throw new ValueException("Upper bound of range cannot be lower than lower bound.", pattern, p);
-                            }
-                        }
+                        max = int.MaxValue;
                     }
                     else
                     {
-                        // No comma, so a fixed length. Max = min, but it should be non-zero positive. 
-                        max = min;
-                        if (min <= 0)
-                            throw new ValueException("Quantifier must be more than 0.", pattern, p);
+                        if (max < min)
+                        {
+                            // To do. Start throwing more specific exceptions
+                            // In this case, tell user that max cannot be < min
+                            throw new ValueException("Upper bound of range cannot be lower than lower bound.", pattern, p);
+                        }
                     }
-
-                    if (pattern[p++] != '}')
-                        throw new ExpectedException("closing }", pattern, --p);
                 }
-                else p--;
+                else
+                {
+                    // No comma, so a fixed length. Max = min, but it should be non-zero positive. 
+                    max = min;
+                    if (min <= 0)
+                        throw new ValueException("Quantifier must be more than 0.", pattern, p);
+                }
+
+                if (pattern[p++] != '}')
+                    throw new ExpectedException("closing }", pattern, --p);
             }
+            else
+            {
+                p--;
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool IsLiteral(char c)
+        {
+            return char.IsLetterOrDigit(c);
+        }
+
+        private bool PeekQuantifier(char c)
+        {
+            return "*+?{".Contains(c);
         }
 
         private SubPattern ScanPattern(string pattern, ref int p)
         {
-            var subPattern = new SubPattern(ScanCharacterMatcher(pattern, ref p));
+            int min;
+            int max;
 
-            ScanQuantifier(pattern, ref p, ref subPattern.min, ref subPattern.max);
+            char c = pattern[p];
 
-            return subPattern;
+            if (c == '.') {
+                p++;
+                ScanQuantifier(pattern, ref p, out min, out max);
+                return new SubPattern(".") { min = min, max = max };
+            }
+            else if (IsLiteral(c))
+            {
+                int e = p;
+                for (; e < pattern.Length; e++) {
+                    if (!IsLiteral(pattern[e]))
+                    {
+                        if (PeekQuantifier(pattern[e]) && e-p > 1)
+                        {
+                            // If the just scanned group of literals consists of more than one, and it
+                            // is followed by a quantifier, don't take the last character. 
+                            // Ex: abcd*e would result in subpatterns abc, d* and e
+                            e--;
+                        }
+                        break;
+                    }
+                }
+
+                string sequence = pattern.Substring(p, e-p);
+                p = e;
+                ScanQuantifier(pattern, ref p, out min, out max);
+                return new SubPattern(sequence) { min = min, max = max };
+            } 
+            else
+            {
+                throw new ExpectedException("alphanumeric character or wildcard", pattern, p);
+            }
         }
     }
 
