@@ -18,6 +18,39 @@ namespace RexExExp
         {
             this.mask = mask;
         }
+
+        public bool Match(string input, ref int position)
+        {
+            var iteration = 0;
+
+            // A pattern can match 0 or more characters, so loop while we match.
+            while (true)
+            {
+
+                // Check if there is something to match, and if so, if it does match.
+                bool match = (position < input.Length && (input[position] == mask || mask == '.'));
+
+                if (match)
+                {
+                    // There is a match for this character, go to the next character.
+                    position++;
+                    // If we reached the max, also go to the next pattern.
+                    if (++iteration >= max)
+                        break;
+                }
+                else
+                {
+                    // No match for this character. 
+                    // If we reached the minimum for this subpattern, check the next.
+                    if (iteration >= min)
+                        break;
+
+                    // If we didn't reach the minimum yet, there the pattern doesn't match.
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 
     class Pattern
@@ -137,32 +170,9 @@ namespace RexExExp
             var i = 0;
             foreach (SubPattern sub in pat.subPatterns)
             {
-                var iteration = 0;
-
-                // A pattern can match 0 or more characters, so loop while we match.
-                while (true) {
-
-                    // Check if there is something to match, and if so, if it does match.
-                    bool match = (i < input.Length && (input[i] == sub.mask || sub.mask == '.'));
-
-                    if (match)
-                    {
-                        // There is a match for this character, go to the next character.
-                        i++;
-                        // If we reached the max, also go to the next pattern.
-                        if (++iteration >= sub.max)
-                            break;
-                    }
-                    else
-                    {
-                        // No match for this character. 
-                        // If we reached the minimum for this subpattern, check the next.
-                        if (iteration >= sub.min) 
-                            break;
-                        
-                        // If we didn't reach the minimum yet, there the pattern doesn't match.
-                        return false;
-                    }
+                if (!sub.Match(input, ref i))
+                {
+                    return false;
                 }
             }
             
