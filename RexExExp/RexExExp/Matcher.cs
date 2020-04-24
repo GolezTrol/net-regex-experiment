@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Security.Cryptography.X509Certificates;
@@ -163,21 +163,31 @@ namespace RexExExp
 
     public class Matcher
     {
-        public static bool IsMatch(string input, string pattern)
-        {
-            Pattern pat = new Pattern(pattern);
+        public Pattern pattern;
 
+        public Matcher(string pattern)
+        {
+            this.pattern = new Pattern(pattern);
+        }
+
+        public bool IsMatch(string input)
+        {
             var i = 0;
-            foreach (SubPattern sub in pat.subPatterns)
+            foreach (SubPattern sub in pattern.subPatterns)
             {
                 if (!sub.Match(input, ref i))
                 {
                     return false;
                 }
             }
-            
+
             // Currently we need to match the entire string, so result is only true if there is no more input string left.
             return i == input.Length;
+        }
+
+        public static bool IsMatch(string input, string pattern)
+        {
+            return (new Matcher(pattern)).IsMatch(input);
         }
     }
 }

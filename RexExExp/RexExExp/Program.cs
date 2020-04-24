@@ -8,8 +8,9 @@ namespace RexExExp
     {
         static int Verify(string input, string pattern, bool expected, string reason)
         {
+            var m = new Matcher(pattern);
             bool ok = Matcher.IsMatch(input, pattern) == expected;
-            Console.WriteLine($"{input}\n{pattern}\n{reason}\n" + (ok ? "ok" : "FAILED"));
+            Console.WriteLine($"{input}\n{pattern}\n{reason}\n" + (ok ? "ok" : "FAILED") + "\n");
 
             return ok ? 0 : 1; // Return 1 in case of error
         }
@@ -24,7 +25,7 @@ namespace RexExExp
             catch(Exception ex) {
                 ok = ex.GetType() == expected;
                 Console.WriteLine($"Caught: {ex.Message}");
-                Console.WriteLine($"{input}\n{pattern}\n{reason}\n" + (ok ? "ok" : "FAILED"));
+                Console.WriteLine($"{input}\n{pattern}\n{reason}\n" + (ok ? "ok" : "FAILED") + "\n");
             }
             return ok ? 0 : 1; // Return 1 in case of error
         }
