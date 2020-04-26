@@ -51,6 +51,7 @@ namespace RexExExp
                 Verify("abbbbcd", "ab{5,}cd", false, "{x,} for 'at least x times' quantifier") +
                 VerifyException("abbbbcd", "ab{5,cd", typeof(ExpectedException), "quantifier should end with }") +
                 VerifyException("a", "{5}", typeof(ExpectedException), "quantifier should be preceeded by a character") +
+                Verify("aaaa", "a*aa", true, "Backtracking for *") +
                 0;
 
             Console.WriteLine($"\n---------------\n{errors} errors");

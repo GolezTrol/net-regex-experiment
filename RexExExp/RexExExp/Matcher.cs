@@ -1,11 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 
 namespace RexExExp
 {
+    public class Match
+    {
+        public string value;
+        public int startpos;
+        public int iteration;
+    }
 
     // A sub-pattern consists of a character to match (or the '.' wildcard), and a flag indicating if it's fixed or variable.
     public class SubPattern
@@ -19,25 +26,35 @@ namespace RexExExp
             this.mask = mask;
         }
 
-        public bool Match(string input, ref int position)
+        public bool Match(string input, ref int position, ref Match match)
         {
-            var iteration = 0;
+            if (match == null)
+            {
+                match = new Match() { startpos = position, iteration = 0 };
+            } 
+            else if (match.iteration == 0)
+            {
+                // Already done this pattern, and backtracked it completely. It's not matching, go back further.
+                return false;
+            }
 
-            // A pattern can match 0 or more characters, so loop while we match.
+            var iteration = match.iteration;
+
+            // A pattern can match 0 or more strings, so loop while we match.
             while (true)
             {
                 // Check if there is something to match, and if so, if it does match.
 
-                bool match = position + mask.Length <= input.Length;
+                bool matched = position + mask.Length <= input.Length;
 
-                if (match && mask != ".")
+                if (matched && mask != ".")
                 {
                     string sub = input.Substring(position, mask.Length);
 
-                    match = mask == sub;
+                    matched = mask == sub;
                 }
 
-                if (match)
+                if (matched)
                 {
                     // There is a match for this character, go to the next character.
                     position += mask.Length;
@@ -52,10 +69,12 @@ namespace RexExExp
                     if (iteration >= min)
                         break;
 
-                    // If we didn't reach the minimum yet, there the pattern doesn't match.
+                    // If we didn't reach the minimum yet, then the pattern doesn't match.
                     return false;
                 }
             }
+            match.iteration = iteration;
+
             return true;
         }
     }
@@ -215,19 +234,36 @@ namespace RexExExp
             this.pattern = new Pattern(pattern);
         }
 
-        public bool IsMatch(string input)
+        public List<Match> Match(string input)
         {
             var i = 0;
-            foreach (SubPattern sub in pattern.subPatterns)
+            var p = 0;
+
+            var result = new List<Match>();
+
+            for (p = 0; p < pattern.subPatterns.Count; p++)
             {
-                if (!sub.Match(input, ref i))
+                SubPattern sub = pattern.subPatterns[p];
+                Match match = null;
+                if (!sub.Match(input, ref i, ref match))
                 {
-                    return false;
+                    return null;
+                } else
+                {
+                    result.Add(match);
                 }
             }
 
             // Currently we need to match the entire string, so result is only true if there is no more input string left.
-            return i == input.Length;
+            if (i < input.Length)
+                return null;
+            return result;
+        }
+
+        public bool IsMatch(string input)
+        {
+            var matches = Match(input);
+            return !(matches == null || matches.Count == 0);
         }
 
         public static bool IsMatch(string input, string pattern)
