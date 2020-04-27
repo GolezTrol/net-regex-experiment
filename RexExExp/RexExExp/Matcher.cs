@@ -11,7 +11,7 @@ namespace RexExExp
     {
         public string value;
         public int startpos;
-        public int iteration;
+        public int length;
     }
 
     // A sub-pattern consists of a character to match (or the '.' wildcard), and a flag indicating if it's fixed or variable.
@@ -30,15 +30,19 @@ namespace RexExExp
         {
             if (match == null)
             {
-                match = new Match() { startpos = position, iteration = 0 };
-            } 
-            else if (match.iteration == 0)
+                match = new Match() { startpos = position, length = max };
+            }
+            else if (match.length == min)
             {
                 // Already done this pattern, and backtracked it completely. It's not matching, go back further.
                 return false;
+            } 
+            else
+            {
+                match.length--;
             }
 
-            var iteration = match.iteration;
+            var iteration = 0;
 
             // A pattern can match 0 or more strings, so loop while we match.
             while (true)
@@ -73,7 +77,8 @@ namespace RexExExp
                     return false;
                 }
             }
-            match.iteration = iteration;
+            match.length = iteration;
+            match.value = input.Substring(match.startpos, match.length);
 
             return true;
         }
@@ -167,6 +172,8 @@ namespace RexExExp
             }
             else
             {
+                // No explicit quantifier. Implies exactly 1.
+                (min, max) = (1, 1);
                 p--;
                 return false;
             }
