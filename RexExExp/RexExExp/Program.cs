@@ -9,7 +9,7 @@ namespace RexExExp
         static int Verify(string input, string pattern, bool expected, string reason)
         {
             var m = new Matcher(pattern);
-            bool ok = Matcher.IsMatch(input, pattern) == expected;
+            bool ok = m.IsMatch(input) == expected;
             Console.WriteLine($"{input}\n{pattern}\n{reason}\n" + (ok ? "ok" : "FAILED") + "\n");
 
             return ok ? 0 : 1; // Return 1 in case of error
@@ -52,6 +52,9 @@ namespace RexExExp
                 VerifyException("abbbbcd", "ab{5,cd", typeof(ExpectedException), "quantifier should end with }") +
                 VerifyException("a", "{5}", typeof(ExpectedException), "quantifier should be preceeded by a character") +
                 Verify("aaaa", "a*aa", true, "Backtracking for *") +
+                Verify("abbbbbbbbcd", "ab{3,}bbbcd", true, "Backtracking for 'at least' {x,} quantifier") +
+                Verify("abbbbbbbbcccdddd", "ab{3,}bbbc*cd+", true, "Backtracking for a combination of unfortunate quantifiers") +
+                Verify("abbbbcd", "ab{1,1}bbbbcd", false, "Backtracking ranged {1,1} quantifier, should fail, because fixed pattern after takes all") +
                 0;
 
             Console.WriteLine($"\n---------------\n{errors} errors");

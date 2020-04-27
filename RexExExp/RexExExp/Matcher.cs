@@ -63,7 +63,7 @@ namespace RexExExp
                     // There is a match for this character, go to the next character.
                     position += mask.Length;
                     // If we reached the max, also go to the next pattern.
-                    if (++iteration >= max)
+                    if (++iteration >= Math.Min(max, match.length))
                         break;
                 }
                 else
@@ -234,10 +234,12 @@ namespace RexExExp
 
     public class Matcher
     {
+        private readonly string patternstr;
         public Pattern pattern;
 
         public Matcher(string pattern)
         {
+            this.patternstr = pattern;
             this.pattern = new Pattern(pattern);
         }
 
@@ -248,16 +250,32 @@ namespace RexExExp
 
             var result = new List<Match>();
 
-            for (p = 0; p < pattern.subPatterns.Count; p++)
+            for (p = 0; p < pattern.subPatterns.Count;)
             {
                 SubPattern sub = pattern.subPatterns[p];
                 Match match = null;
+
+                var newMatch = result.Count <= p;
+
+                if (!newMatch)
+                {
+                    match = result[p];
+                }
+
                 if (!sub.Match(input, ref i, ref match))
                 {
-                    return null;
-                } else
+                    if (!newMatch)
+                        result.RemoveAt(p);
+                    p--;
+                    if (p < 0)
+                        return null;
+                    i = result[p].startpos;
+                }
+                else
                 {
-                    result.Add(match);
+                    if (newMatch)
+                        result.Add(match);
+                    p++;
                 }
             }
 
