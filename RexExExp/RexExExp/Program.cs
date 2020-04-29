@@ -55,6 +55,10 @@ namespace RexExExp
                 Verify("abbbbbbbbcd", "ab{3,}bbbcd", true, "Backtracking for 'at least' {x,} quantifier") +
                 Verify("abbbbbbbbcccdddd", "ab{3,}bbbc*cd+", true, "Backtracking for a combination of unfortunate quantifiers") +
                 Verify("abbbbcd", "ab{1,1}bbbbcd", false, "Backtracking ranged {1,1} quantifier, should fail, because fixed pattern after takes all") +
+                Verify("abac", "a*b*a*c*", true, "Backtracking repeating groups of a*.") +
+                Verify("aaaaac", "a*b*a*c*", true, "Backtracking repeating groups of a*.") +
+                Verify("aac", "a*b*a*c*", true, "Backtracking repeating groups of a*.") +
+                Verify("c", "a*b*a*c*", true, "Backtracking repeating groups of a*.") +
                 0;
 
             Console.WriteLine($"\n---------------\n{errors} errors");
